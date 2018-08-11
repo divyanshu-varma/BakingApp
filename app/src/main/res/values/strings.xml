@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Baking App</string>
+    <string name="content_description_widget">Ingredients of my favorite recipe</string>
+    <string name="previous_button">Previous</string>
+    <string name="next_button">Next</string>
+    <string name="no_description">No Description</string>
+</resources>
