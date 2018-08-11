@@ -19,15 +19,19 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import butterknife.ButterKnife;
+import butterknife.InjectView;
+
 public class MainActivity extends AppCompatActivity implements RecipeListFragment.OnListFragmentInteractionListener {
 
+    @InjectView(R.id.progress_bar)
     ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        progressBar = new ProgressBar(this);
+        ButterKnife.inject(this);
         new JsonTask().execute("http://d17h27t6h515a5.cloudfront.net/topher/2017/May/59121517_baking/baking.json");
     }
 
@@ -35,7 +39,6 @@ public class MainActivity extends AppCompatActivity implements RecipeListFragmen
     public void onListFragmentInteraction(DummyContent.DummyItem item) {
         Intent intent = new Intent(this, RecipeDetails.class);
         intent.putExtra("id", item.id);
-        RecipeDetails.counter = 0;
         startActivity(intent);
     }
 
@@ -96,9 +99,8 @@ public class MainActivity extends AppCompatActivity implements RecipeListFragmen
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
-            if (progressBar.getVisibility() == View.VISIBLE) {
-                progressBar.setVisibility(View.INVISIBLE);
-            }
+            if (progressBar.getVisibility() == View.VISIBLE)
+                progressBar.setVisibility(View.GONE);
             RecipeJson.jsonData = result;
             RecipeListFragment recipeListFragment = new RecipeListFragment();
             FragmentManager fragmentManager = getSupportFragmentManager();

@@ -37,22 +37,10 @@ public class RecipeDetails extends AppCompatActivity implements IngredientsFragm
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recipe_details);
         frameLayout = findViewById(R.id.steps_container);
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
-                && getResources().getConfiguration().smallestScreenWidthDp < 600) {
-            View decorView = getWindow().getDecorView();
-            int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-            decorView.setSystemUiVisibility(uiOptions);
-            getSupportActionBar().hide();
-        }
+
         next = findViewById(R.id.next_step);
         previous = findViewById(R.id.previous_step);
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT
-                && counter != 0
-                && getResources().getConfiguration().smallestScreenWidthDp < 600) {
-            next.setVisibility(View.VISIBLE);
-            previous.setVisibility(View.VISIBLE);
-        }
-        counter++;
+
         Intent intent = getIntent();
         id = intent.getStringExtra("id");
         if (savedInstanceState == null) {
@@ -127,6 +115,30 @@ public class RecipeDetails extends AppCompatActivity implements IngredientsFragm
     }
 
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        if (getResources().getConfiguration().smallestScreenWidthDp < 600) {
+            // Checks the orientation of the screen
+            if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                View decorView = getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+                decorView.setSystemUiVisibility(uiOptions);
+                getSupportActionBar().hide();
+                next.setVisibility(View.GONE);
+                previous.setVisibility(View.GONE);
+            } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                View decorView = getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_VISIBLE;
+                decorView.setSystemUiVisibility(uiOptions);
+                getSupportActionBar().show();
+                next.setVisibility(View.VISIBLE);
+                previous.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if ((keyCode == KeyEvent.KEYCODE_BACK) && getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             next.setVisibility(View.INVISIBLE);
@@ -137,7 +149,6 @@ public class RecipeDetails extends AppCompatActivity implements IngredientsFragm
         }
         return super.onKeyDown(keyCode, event);
     }
-
 
 
     void nextStep(String shortDescription, String recipeId) {
@@ -233,7 +244,7 @@ public class RecipeDetails extends AppCompatActivity implements IngredientsFragm
                     .replace(R.id.ingredients_container, exoPlayerFragment)
                     .addToBackStack(null)
                     .commit();
-            frameLayout.setVisibility(View.INVISIBLE);
+            frameLayout.setVisibility(View.GONE);
         } else if (!alreadyAdded) {
             fragmentManager.beginTransaction()
                     .add(R.id.player_container, exoPlayerFragment)

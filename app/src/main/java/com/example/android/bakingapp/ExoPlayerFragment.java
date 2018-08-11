@@ -5,7 +5,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +27,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import butterknife.ButterKnife;
+import butterknife.InjectView;
+
 
 /**
  * A simple {@link Fragment} subclass.
@@ -40,13 +42,12 @@ import org.json.JSONObject;
 public class ExoPlayerFragment extends Fragment {
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
-    long currentPosition;
-    Bundle bundle;
+
     SimpleExoPlayer player;
+    @InjectView(R.id.video_view)
+    PlayerView mPlayerView;
     private String mParam1;
     private String mParam2;
-
-    private PlayerView mPlayerView;
     private OnFragmentInteractionListener mListener;
 
     public ExoPlayerFragment() {
@@ -74,29 +75,6 @@ public class ExoPlayerFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-        if (savedInstanceState != null) {
-            DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-            TrackSelection.Factory videoTrackSelectionFactory =
-                    new AdaptiveTrackSelection.Factory(bandwidthMeter);
-            DefaultTrackSelector trackSelector =
-                    new DefaultTrackSelector(videoTrackSelectionFactory);
-
-
-            player = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector);
-            player.seekTo(savedInstanceState.getLong("currentPosition"));
-        }
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        currentPosition = player.getCurrentPosition();
-        outState.putLong("currentPosition", currentPosition);
-        Log.d("currentPosition", "onSaveInstanceState: " + currentPosition);
     }
 
     @Override
@@ -112,6 +90,7 @@ public class ExoPlayerFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
+        player.stop();
         if (Util.SDK_INT > 23) {
             player.release();
             player = null;
@@ -119,49 +98,16 @@ public class ExoPlayerFragment extends Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        if (Util.SDK_INT > 23) {
-            DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-            TrackSelection.Factory videoTrackSelectionFactory =
-                    new AdaptiveTrackSelection.Factory(bandwidthMeter);
-            DefaultTrackSelector trackSelector =
-                    new DefaultTrackSelector(videoTrackSelectionFactory);
-
-
-            player = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector);
-
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if ((Util.SDK_INT <= 23 || player == null)) {
-            DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-            TrackSelection.Factory videoTrackSelectionFactory =
-                    new AdaptiveTrackSelection.Factory(bandwidthMeter);
-            DefaultTrackSelector trackSelector =
-                    new DefaultTrackSelector(videoTrackSelectionFactory);
-
-
-            player = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector);
-
-        }
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_exo_player, container, false);
-        mPlayerView = view.findViewById(R.id.video_view);
+        ButterKnife.inject(this, view);
 
         DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
         TrackSelection.Factory videoTrackSelectionFactory =
                 new AdaptiveTrackSelection.Factory(bandwidthMeter);
         DefaultTrackSelector trackSelector =
                 new DefaultTrackSelector(videoTrackSelectionFactory);
-
 
         player = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector);
         mPlayerView.setPlayer(player);
@@ -195,6 +141,10 @@ public class ExoPlayerFragment extends Fragment {
             e.printStackTrace();
         }
 
+        if (savedInstanceState != null) {
+            player.seekTo(savedInstanceState.getLong("currentPosition"));
+        }
+
         if (!url.equals("")) {
             MediaSource mediaSource = new ExtractorMediaSource.Factory(mediaDataSourceFactory).createMediaSource(Uri.parse(url));
             player.prepare(mediaSource);
@@ -203,10 +153,16 @@ public class ExoPlayerFragment extends Fragment {
         }
         onButtonPressed(shortDescriptionParameter);
 
+
         return view;
 
     }
 
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong("currentPosition", player.getCurrentPosition());
+    }
 
     public void onButtonPressed(String shortDescription) {
         if (mListener != null) {
