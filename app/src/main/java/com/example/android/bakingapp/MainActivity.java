@@ -11,6 +11,10 @@ import android.widget.ProgressBar;
 
 import com.example.android.bakingapp.dummy.DummyContent;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +30,7 @@ public class MainActivity extends AppCompatActivity implements RecipeListFragmen
 
     @InjectView(R.id.progress_bar)
     ProgressBar progressBar;
+    public static String itemForWidget;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +107,26 @@ public class MainActivity extends AppCompatActivity implements RecipeListFragmen
             if (progressBar.getVisibility() == View.VISIBLE)
                 progressBar.setVisibility(View.GONE);
             RecipeJson.jsonData = result;
+            try {
+                JSONArray jsonArray = new JSONArray(result);
+                JSONObject recipe = jsonArray.getJSONObject(0);
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append(recipe.getString("name"))
+                        .append("\n");
+                JSONArray ingredientsArray = recipe.getJSONArray("ingredients");
+                for (int index = 0; index < ingredientsArray.length(); index++) {
+                    JSONObject jsonObject = ingredientsArray.getJSONObject(index);
+                    stringBuilder.append(jsonObject.getString("quantity"))
+                            .append(" ")
+                            .append(jsonObject.getString("measure"))
+                            .append(" ")
+                            .append(jsonObject.getString("ingredient"))
+                            .append("\n");
+                }
+                itemForWidget = stringBuilder.toString();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
             RecipeListFragment recipeListFragment = new RecipeListFragment();
             FragmentManager fragmentManager = getSupportFragmentManager();
             fragmentManager.beginTransaction()
