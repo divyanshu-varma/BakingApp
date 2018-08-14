@@ -44,6 +44,7 @@ public class ExoPlayerFragment extends Fragment {
     private static final String ARG_PARAM2 = "param2";
 
     SimpleExoPlayer player;
+    long startPosition;
     @InjectView(R.id.video_view)
     PlayerView mPlayerView;
     private String mParam1;
@@ -80,20 +81,34 @@ public class ExoPlayerFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        player.setPlayWhenReady(false);
+
         if (Util.SDK_INT <= 23) {
-            player.release();
-            player = null;
+            releasePlayer();
         }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        player.stop();
+
         if (Util.SDK_INT > 23) {
-            player.release();
-            player = null;
+            releasePlayer();
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (Util.SDK_INT > 23) {
+            initializePlayer();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if ((Util.SDK_INT <= 23 || player == null)) {
+            initializePlayer();
         }
     }
 
@@ -102,60 +117,67 @@ public class ExoPlayerFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_exo_player, container, false);
         ButterKnife.inject(this, view);
-
-        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        TrackSelection.Factory videoTrackSelectionFactory =
-                new AdaptiveTrackSelection.Factory(bandwidthMeter);
-        DefaultTrackSelector trackSelector =
-                new DefaultTrackSelector(videoTrackSelectionFactory);
-
-        player = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector);
-        mPlayerView.setPlayer(player);
-        DataSource.Factory mediaDataSourceFactory = new DefaultDataSourceFactory(getContext(),
-                Util.getUserAgent(getContext(),
-                        "BakingApp"),
-                bandwidthMeter);
-
-        String id = getArguments().getString("id");
-        String url = "", videoURL = "";
-        String shortDescriptionParameter = getArguments().getString("item");
-
-        try {
-            JSONArray jsonArray = new JSONArray(RecipeJson.jsonData);
-            JSONObject jsonObject = jsonArray.getJSONObject(Integer.parseInt(id));
-            JSONArray jsonArray1 = jsonObject.getJSONArray("steps");
-            int index1;
-            for (index1 = 0; index1 < jsonArray1.length(); index1++) {
-                JSONObject jsonObject1 = jsonArray1.getJSONObject(index1);
-                if (jsonObject1.getString("shortDescription").equals(shortDescriptionParameter)) {
-                    videoURL = jsonObject1.getString("videoURL");
-                    if (videoURL.equals("")) {
-                        mPlayerView.setVisibility(View.GONE);
-                        Toast.makeText(getContext(), "NO VIDEO", Toast.LENGTH_SHORT).show();
-                    } else
-                        url = videoURL;
-                    break;
-                }
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        if (savedInstanceState != null) {
-            player.seekTo(savedInstanceState.getLong("currentPosition"));
-        }
-
-        if (!url.equals("")) {
-            MediaSource mediaSource = new ExtractorMediaSource.Factory(mediaDataSourceFactory).createMediaSource(Uri.parse(url));
-            player.prepare(mediaSource);
-            player.setPlayWhenReady(true);
-
-        }
-        onButtonPressed(shortDescriptionParameter);
-
-
+        if (savedInstanceState != null)
+            startPosition = savedInstanceState.getLong("currentPosition");
         return view;
+    }
 
+    private void initializePlayer() {
+        if (player == null) {
+            DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+            TrackSelection.Factory videoTrackSelectionFactory =
+                    new AdaptiveTrackSelection.Factory(bandwidthMeter);
+            DefaultTrackSelector trackSelector =
+                    new DefaultTrackSelector(videoTrackSelectionFactory);
+
+            player = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector);
+            mPlayerView.setPlayer(player);
+            DataSource.Factory mediaDataSourceFactory = new DefaultDataSourceFactory(getContext(),
+                    Util.getUserAgent(getContext(),
+                            "BakingApp"),
+                    bandwidthMeter);
+            String id = getArguments().getString("id");
+            String url = "", videoURL = "";
+            String shortDescriptionParameter = getArguments().getString("item");
+
+            try {
+                JSONArray jsonArray = new JSONArray(RecipeJson.jsonData);
+                JSONObject jsonObject = jsonArray.getJSONObject(Integer.parseInt(id));
+                JSONArray jsonArray1 = jsonObject.getJSONArray("steps");
+                int index1;
+                for (index1 = 0; index1 < jsonArray1.length(); index1++) {
+                    JSONObject jsonObject1 = jsonArray1.getJSONObject(index1);
+                    if (jsonObject1.getString("shortDescription").equals(shortDescriptionParameter)) {
+                        videoURL = jsonObject1.getString("videoURL");
+                        if (videoURL.equals("")) {
+                            mPlayerView.setVisibility(View.GONE);
+                            Toast.makeText(getContext(), "NO VIDEO", Toast.LENGTH_SHORT).show();
+                        } else
+                            url = videoURL;
+                        break;
+                    }
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+
+            if (!url.equals("")) {
+                MediaSource mediaSource = new ExtractorMediaSource.Factory(mediaDataSourceFactory).createMediaSource(Uri.parse(url));
+                player.prepare(mediaSource);
+                player.setPlayWhenReady(true);
+
+            }
+            onButtonPressed(shortDescriptionParameter);
+        }
+        player.seekTo(startPosition);
+    }
+
+    private void releasePlayer() {
+        if (player != null) {
+            player.release();
+            player = null;
+        }
     }
 
     @Override
